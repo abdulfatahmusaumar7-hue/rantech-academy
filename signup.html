@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Create a Rantech Academy student account."><title>Sign up | Rantech Academy</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="auth.js" defer></script>
+</head>
+<body class="auth">
+  <main class="card">
+    <a class="brand" href="index.html"><span class="mark">R</span><span>Rantech <b>Academy</b></span></a>
+    <span class="eyebrow">CREATE ACCOUNT</span><h1>Start learning</h1>
+    <p>Create your student account and begin learning practical skills.</p>
+    <div id="message" class="message" hidden></div>
+    <form id="signupForm">
+      <label>Full name<input name="full_name" type="text" placeholder="Full name" autocomplete="name" required></label>
+      <label>Email<input name="email" type="email" placeholder="you@example.com" autocomplete="email" required></label>
+      <label>Password<input name="password" type="password" placeholder="At least 6 characters" autocomplete="new-password" minlength="6" required></label>
+      <button class="primary" type="submit">Create account</button>
+    </form>
+    <p class="switch">Already have an account? <a href="login.html">Log in</a></p>
+    <a class="back" href="index.html">← Back to home</a>
+  </main>
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    document
+      .getElementById('signupForm')
+      .addEventListener('submit', RantechAuth.handleSignup);
+  });
+</script>
+</body>
+</html>
