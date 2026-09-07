@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Rantech Academy student dashboard."><title>Student Dashboard | Rantech Academy</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="auth.js" defer></script>
+</head>
+<body class="dashboard-page">
+  <header class="nav">
+    <a class="brand" href="index.html"><span class="mark">R</span><span>Rantech <b>Academy</b></span></a>
+    <nav><a href="index.html">Home</a><button class="nav-button" id="logoutBtn">Log out</button></nav>
+  </header>
+  <main class="dashboard section">
+    <section class="dash-hero">
+      <div><span class="eyebrow">STUDENT DASHBOARD</span><h1 id="welcome">Welcome back</h1><p id="emailLine">Loading your account...</p></div>
+      <div class="stat"><span id="courseCount">0</span><small>Courses available</small></div>
+    </section>
+    <div id="dashboardMessage" class="message" hidden></div>
+    <section>
+      <div class="head"><span class="eyebrow">YOUR LEARNING</span><h2>Choose a course</h2><p>Open a course to see its modules, lessons, and your progress.</p></div>
+      <div id="courseGrid" class="grid dashboard-grid"><div class="loading">Loading courses...</div></div>
+    </section>
+  </main>
+  <footer>© 2026 Rantech Academy · Learn. Build. Create. Secure.</footer>
+  <script>
+  (async function(){
+    const auth = window.RantechAuth;
+    const user = await auth.requireUser();
+    if (!user) return;
+    const db = auth.supabaseClient;
+    const welcome = document.getElementById('welcome');
+    const emailLine = document.getElementById('emailLine');
+    const name = user.user_metadata?.full_name || 'Student';
+    welcome.textContent = `Welcome, ${name}`;
+    emailLine.textContent = user.email || '';
+    document.getElementById('logoutBtn').addEventListener('click', auth.logout);
+
+    const { data: courses, error } = await db.from('courses').select('*').order('created_at', { ascending: true });
+    const grid = document.getElementById('courseGrid');
+    if (error) { grid.innerHTML = '<div class="message error">Could not load courses. Check your Supabase policies and configuration.</div>'; return; }
+    document.getElementById('courseCount').textContent = courses?.length || 0;
+    if (!courses?.length) { grid.innerHTML = '<div class="empty">No courses have been added yet.</div>'; return; }
+
+    const icons = {'Web Development':'🌐','Cybersecurity':'🔐','UI/UX Design':'🎨','Graphics Design':'🖌️'};
+    grid.innerHTML = courses.map(c => `<article class="course-card"><i>${icons[c.title] || '📚'}</i><small>${c.category || 'COURSE'}</small><h3>${c.title}</h3><p>${c.description || ''}</p><div class="progress-track"><span style="width:0%"></span></div><div class="progress-row"><span>Progress</span><strong>0%</strong></div><button class="course-open" data-course="${c.id}">Open course →</button></article>`).join('');
+
+    for (const card of grid.querySelectorAll('.course-card')) {
+      const button = card.querySelector('.course-open');
+      const courseId = button.dataset.course;
+      try {
+        const { data: progress, error: progressError } = await db.rpc('get_course_progress', { p_user_id: user.id, p_course_id: courseId });
+        if (!progressError) {
+          const value = Number(progress) || 0;
+          card.querySelector('.progress-track span').style.width = `${value}%`;
+          card.querySelector('.progress-row strong').textContent = `${value}%`;
+        }
+      } catch (_) {}
+      button.addEventListener('click', () => {
+        window.location.href = `course.html?id=${encodeURIComponent(courseId)}`;
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

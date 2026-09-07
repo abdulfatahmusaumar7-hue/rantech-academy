@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Rantech Academy course lessons."><title>Course | Rantech Academy</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="auth.js" defer></script>
+</head>
+<body class="dashboard-page">
+  <header class="nav"><a class="brand" href="index.html"><span class="mark">R</span><span>Rantech <b>Academy</b></span></a><nav><a href="dashboard.html">Dashboard</a><button class="nav-button" id="logoutBtn">Log out</button></nav></header>
+  <main class="section course-page">
+    <a class="back-link" href="dashboard.html">← Back to dashboard</a>
+    <div id="courseHeader" class="course-header"><span class="eyebrow">COURSE</span><h1>Loading...</h1><p></p></div>
+    <div id="courseMessage" class="message" hidden></div>
+    <div id="moduleList" class="module-list"></div>
+  </main>
+  <footer>© 2026 Rantech Academy · Learn. Build. Create. Secure.</footer>
+  <script>
+  (async function(){
+    const auth = window.RantechAuth; const user = await auth.requireUser(); if (!user) return;
+    document.getElementById('logoutBtn').addEventListener('click', auth.logout);
+    const id = new URLSearchParams(location.search).get('id');
+    const msg = document.getElementById('courseMessage');
+    if (!id) { msg.textContent='No course was selected.'; msg.hidden=false; return; }
+    const db = auth.supabaseClient;
+    const [{data: course, error: ce}, {data: modules, error: me}] = await Promise.all([
+      db.from('courses').select('*').eq('id', id).single(),
+      db.from('modules').select('*').eq('course_id', id).order('module_order')
+    ]);
+    if (ce || me) { msg.textContent='Could not load this course.'; msg.className='message error'; msg.hidden=false; return; }
+    document.title = `${course.title} | Rantech Academy`;
+    document.querySelector('#courseHeader h1').textContent = course.title;
+    document.querySelector('#courseHeader p').textContent = course.description || '';
+    const moduleList = document.getElementById('moduleList');
+    const { data: lessons } = await db.from('lessons').select('*').in('module_id', modules.map(m=>m.id)).order('lesson_order');
+    const { data: progress } = await db.from('lesson_progress').select('lesson_id, completed').eq('user_id', user.id);
+    const done = new Set((progress || []).filter(p=>p.completed).map(p=>p.lesson_id));
+    moduleList.innerHTML = modules.map((m, i) => {
+      const ls = (lessons || []).filter(l=>l.module_id === m.id);
+      return `<section class="module"><div class="module-top"><div><span class="eyebrow">MODULE ${i+1}</span><h2>${m.title}</h2><p>${m.description || ''}</p></div><span class="module-count">${ls.length} lessons</span></div><div class="lesson-list">${ls.map((l,j)=>`<div class="lesson-item"><span class="lesson-number">${j+1}</span><div><strong>${l.title}</strong><p>${l.description || ''}</p></div><span class="lesson-status ${done.has(l.id)?'complete':''}">${done.has(l.id)?'✓ Complete':'Not started'}</span></div>`).join('')}</div></section>`;
+    }).join('');
+  })();
+  </script>
+</body>
+</html>
